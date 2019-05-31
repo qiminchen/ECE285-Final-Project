@@ -20,31 +20,18 @@ import copy
 import pandas as pd
 import os
 
-# dataset root directory
-dataset_root_dir = '/datasets/ee285f-public/wikiart/'
 
 # Dataset
-class WikiArt(Dataset):
-    def __init__(self, root_dir, mode="train", image_size=(512, 512)):
-        super(WikiArt, self).__init__()
+class StyleTransferDataset(Dataset):
+    def __init__(self, root_dir, img_type, image_size=(512, 512)):
+        super(StyleTransferDataset, self).__init__()
         self.image_size = image_size
-        self.mode = mode
-        self.data = pd.read_csv(os.path.join(root_dir, "Style/style_%s.csv" % mode))
-        self.images_dir = os.path.join(root_dir, "wikiart")
+        self.images_dir = os.path.join(root_dir, img_type)
     
-    def __len__(self):
-        
-        return len(self.data)
     
-    def __repr__(self):
+    def __getitem__(self, types, img_name):
         
-        return "WikiArt(mode={}, image_size={})". \
-                format(self.mode, self.image_size)
-    
-    def __getitem__(self, idx):
-        
-        img_path = os.path.join(self.images_dir, \
-                   self.data.iloc[idx][0])
+        img_path = os.path.join(self.images_dir, types, img_name)
         img = Image.open(img_path).convert('RGB')
         transform = transforms.Compose([
             transforms.Resize(self.image_size),
@@ -56,6 +43,8 @@ class WikiArt(Dataset):
     
         return img
     
+
+
 # Content Loss
 class ContentLoss(nn.Module):
     
@@ -103,14 +92,73 @@ class StyleLoss(nn.Module):
 vgg19 = models.vgg19(pretrained=True).features.eval()
 
 # desired depth layers to compute style/content losses :
-content_layers_default = ['conv_4']
-style_layers_default = ['conv_1', 'conv_2', 'conv_3', 'conv_4', 'conv_5']
 
+# content layer: ‘conv3 1’ with index 5
+content_layers_idx = [5]
+
+'''
+conv1_1 with index 1
+conv2_1 with index 3
+conv3_1 with index 5
+conv4_1 with index 9
+conv5_1 with index 13
+'''
+
+style_layers_idx = [1, 3, 5, 9, 13]
+
+def get_style_model_and_losses(net, style_img, content_img, 
+                               content_layers=content_layers_idx, 
+                               style_layers=style_layers_idx):
+    
+    vgg = copy.deepcopy(net)
+    
+    # losses
+    content_losses = []
+    style_losses = []
+    
+    model = nn.Sequential()
+    
+    i = 0
+    for layer in vgg.children():
+        
+        if isinstance(layer, nn.Conv2d):
+            i += 1
+            name = 'conv_{}'.format(i)
+        elif isinstance(layer, nn.ReLU):
+            name = 'relu_{}'.format(i)
+            layer = nn.ReLU(inplace=False)
+        elif isinstance(layer, nn.MaxPool2d):
+            name = 'pool_{}'.format(i)
+        elif isinstance(layer, nn.BatchNorm2d):
+            name = 'bn_{}'.format(i)
+        else:
+            raise RuntimeError('Unrecognized layer: {}'.format(layer.__class__.__name__))
+        
+        model.add_module(name, layer)
+        
+        if i in content_layers:
+            # add content loss:
+            target = model(content_img).detach()
+            content_loss = ContentLoss(target)
+            model.add_module("content_loss_{}".format(i), content_loss)
+            content_losses.append(content_loss)
+
+        if i in style_layers:
+            # add style loss:
+            target_feature = model(style_img).detach()
+            style_loss = StyleLoss(target_feature)
+            model.add_module("style_loss_{}".format(i), style_loss)
+            style_losses.append(style_loss)
     
     
+    # Trim off the layers after the last content and style losses
+    for i in range(len(model) - 1, -1, -1):
+        if isinstance(model[i], ContentLoss) or isinstance(model[i], StyleLoss):
+            break
     
+    model = model[:(i + 1)]
     
-    
+    return model, style_losses, content_losses
     
     
     
