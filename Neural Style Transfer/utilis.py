@@ -21,6 +21,7 @@ import pandas as pd
 import os
 import time
 
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 def imgs_for_demo():
     
@@ -38,7 +39,41 @@ def imgs_for_demo():
     return style_imgs, content_imgs
 
 
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+def style_transfer_demo(content_imgs, style_imgs):
+    
+    content_name = ['Field', 'City']
+    style_name = ['Expressionism','Impressionism','Realism']
+    total = len(content_imgs) * len(style_imgs)
+    
+    vgg = models.vgg19(pretrained=True).features.to(device).eval()
+    outputs = []
+    start = time.time()
+    for i, content in enumerate(content_imgs):
+        
+        content = content.to(device)
+        input_img = content.clone().detach().requires_grad_(True)
+        for j, style in enumerate(style_imgs):
+            
+            print('{}/{}. Content: {}, Style: {} transfer start!'.format(
+                (i*3+j+1), total, content_name[i], style_name[j]))
+            print()
+            
+            style = style.to(device)
+            output = run_style_transfer(vgg, content, style, input_img)
+            outputs.append(output.clone())
+            
+            print('Content: {}, Style: {} transfer complete!'.format(
+                content_name[i],style_name[j]))
+            print('----------------------------------------------------------')
+            print()
+    
+    time_elapsed = time.time() - start
+    print('< Transfering complete in {:.0f}m {:.0f}s >'.format(
+        time_elapsed // 60, time_elapsed % 60))
+    
+    
+    return outputs
+
 
 imsize = 512
 
@@ -164,9 +199,10 @@ def get_style_model_and_losses(cnn, normalization_mean, normalization_std,
     return model, style_losses, content_losses
 
 
-def run_style_transfer(cnn, normalization_mean, normalization_std,
-                       content_img, style_img, input_img, num_steps=300,
-                       style_weight=100000, content_weight=1):
+def run_style_transfer(cnn, content_img, style_img, input_img,
+                       normalization_mean=cnn_normalization_mean,
+                       normalization_std=cnn_normalization_std, 
+                       num_steps=200, style_weight=1000000, content_weight=1):
     
     print('Building the style transfer model...')
     model, style_losses, content_losses = get_style_model_and_losses(cnn,
@@ -174,6 +210,7 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     optimizer = optim.LBFGS([input_img.requires_grad_()])
 
     print('Optimizing...')
+    print()
     
     start = time.time()
     
@@ -215,5 +252,6 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     time_elapsed = time.time() - start
     print('Transfering complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
+    print()
 
-    return input_img, model
+    return input_img
