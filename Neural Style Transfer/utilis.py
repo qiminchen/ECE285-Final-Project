@@ -19,6 +19,24 @@ import torchvision.models as models
 import copy
 import pandas as pd
 import os
+import time
+
+
+def imgs_for_demo():
+    
+    style_root = '/datasets/ee285f-public/wikiart/wikiart'
+    content_root = '/datasets/ee285f-public/flickr_landscape'
+    styles = ['Abstract_Expressionism/elaine-de-kooning_untitled-1965.jpg',
+              'Impressionism/paul-cezanne_the-orchard-1877.jpg',
+              'Realism/winslow-homer_the-guide.jpg']
+    contents = ['field/8883092521_071c314fc6.jpg',
+                'city/239248438_96fceedfba.jpg']
+    
+    style_imgs = [image_loader(os.path.join(style_root, x)) for x in styles]
+    content_imgs = [image_loader(os.path.join(content_root, x)) for x in contents]
+    
+    return style_imgs, content_imgs
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -147,7 +165,7 @@ def get_style_model_and_losses(cnn, normalization_mean, normalization_std,
 
 
 def run_style_transfer(cnn, normalization_mean, normalization_std,
-                       content_img, style_img, input_img, num_steps=500,
+                       content_img, style_img, input_img, num_steps=300,
                        style_weight=100000, content_weight=1):
     
     print('Building the style transfer model...')
@@ -156,6 +174,9 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
     optimizer = optim.LBFGS([input_img.requires_grad_()])
 
     print('Optimizing...')
+    
+    start = time.time()
+    
     run = [0]
     while run[0] <= num_steps:
 
@@ -181,8 +202,8 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
             run[0] += 1
             if run[0] % 50 == 0:
-                print("run {}, Style Loss: {:4f}, Content Loss: {:4f}".format(
-                    run, style_score.item(), content_score.item()))
+                print("run {}/{}, Style Loss: {:4f}, Content Loss: {:4f}".format(
+                    run[0], num_steps, style_score.item(), content_score.item()))
 
             return style_score + content_score
 
@@ -190,11 +211,9 @@ def run_style_transfer(cnn, normalization_mean, normalization_std,
 
     # Last correction
     input_img.data.clamp_(0, 1)
+    
+    time_elapsed = time.time() - start
+    print('Transfering complete in {:.0f}m {:.0f}s'.format(
+        time_elapsed // 60, time_elapsed % 60))
 
-    return input_img
-
-
-
-
-
-
+    return input_img, model
