@@ -30,3 +30,18 @@ def display(img1, img2):
     ax[1].imshow(img2)
     ax[0].axis('off')
     ax[1].axis('off')
+    
+def display_style_content(imgs, types):
+    
+    fig, ax = plt.subplots(1, len(types), figsize=(len(types)*4,len(types)*4))
+    for i, style in enumerate(types):
+        
+        img = convert(imgs[i][0])
+        ax[i].set_title(style)
+        ax[i].imshow(img)
+        ax[i].axis('off')
+    
+    
+    
+    
+    
