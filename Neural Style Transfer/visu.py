@@ -9,6 +9,7 @@ Created on Fri May 31 11:55:37 2019
 import matplotlib.pyplot as plt
 import numpy as np
 
+
 def convert(img):
     
     img = img.to('cpu').detach().numpy()
@@ -17,6 +18,7 @@ def convert(img):
     img[img > 1] = 1
     
     return img
+
 
 def display(img1, img2):
     
@@ -57,10 +59,13 @@ def display_demo_result(imgs, inputs):
         ax[i][1].axis('off')
         ax[i][2].axis('off')
         ax[i][3].axis('off')
+        '''
         if i == 0:
             for j in range(4):
                 ax[i][j].set_title(types[j])
-    plt.subplots_adjust(wspace=.001, hspace=.05)
+        '''
+    plt.subplots_adjust(wspace=.001, hspace=.08)
+    plt.savefig('result_for_nst.png')
     
     
     
