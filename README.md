@@ -25,6 +25,8 @@ Image-to-Image Translation using Cycle-GANs  -- contains code for Cycle-GANs int
     model_checkpoints     -- Folder contains trained cycle-gan model and trained improved cycle-gan model
     model                 -- Folder contains model.py and network.py etc.
     options               -- Folder contains train and test configuration
+    result                -- Folder contains transferred results and recovered results
+    scripts               -- train and test scripts
     transferred_data_for_recover  -- Folder contains transfered images for recovering
     util                  -- Folder contains utilities
     demo.ipynb            -- Run a demo of our code
