@@ -8,7 +8,7 @@ This is project B Style Transfer developed by team 996ICU composed of Qimin Chen
 Install package 'dominate' as: ```pip install dominate --user```     
 Install package 'visdom' as: ```pip install visdom --user```
 
-If ```cuda runtime error (11) : invalid argument at /opt/conda/conda-bld/pytorch_1544174967633/work/aten/src/THC/THCGeneral.cpp:405``` happened, please restart the GPU cluster.
+If ```cuda runtime error (11) : invalid argument at /opt/conda/conda-bld/pytorch_1544174967633/work/aten/src/THC/THCGeneral.cpp:405``` or any other ```cuda``` issues happen, please restart the GPU cluster.
 
 # Code organization
 <pre>
